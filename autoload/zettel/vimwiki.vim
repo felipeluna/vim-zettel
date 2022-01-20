@@ -75,15 +75,10 @@ let s:test_header_end = function(vimwiki#vars#get_wikilocal('syntax') ==? 'markd
 " variables that depend on the wiki syntax
 if vimwiki#vars#get_wikilocal('syntax') ==? 'markdown'
   " add file extension when g:vimwiki_markdown_link_ext is set
-  if exists("g:vimwiki_markdown_link_ext") && g:vimwiki_markdown_link_ext == 1
     let s:link_format = "[%title](%link.md)"
     " TODO: s:link_stub used to be different than s:link_format, but it is no longer
     " the case. maybe we can get rid of it?
     let s:link_stub =  "[%title](%link.md)"
-  else
-    let s:link_format = "[%title](%link)"
-    let s:link_stub =  "[%title](%link)"
-  endif
   let s:header_format = "%s: %s"
   let s:header_delimiter = "---"
   let s:insert_mode_title_format = "``l"
