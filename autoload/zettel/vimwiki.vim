@@ -632,10 +632,11 @@ function! zettel#vimwiki#zettel_capture(wnum,...)
   " open the new zettel
   execute "e " . newfile
 endfunction
-
-" based on vimwikis "get wiki links", not stripping file extension
-function! zettel#vimwiki#get_wikilinks(wiki_nr, also_absolute_links)
-  let files = vimwiki#base#find_files(a:wiki_nr, 0)
+" ------
+"
+"
+function! zettel#vimwiki#get_wikilinks(wiki_nr, also_absolute_links) abort
+  let files = vimwiki#base#find_files(a:wiki_nr, 0, '')
   if a:wiki_nr == vimwiki#vars#get_bufferlocal('wiki_nr')
     let cwd = vimwiki#path#wikify_path(expand('%:p:h'))
   elseif a:wiki_nr < 0
@@ -645,9 +646,18 @@ function! zettel#vimwiki#get_wikilinks(wiki_nr, also_absolute_links)
   endif
   let result = []
   for wikifile in files
+
+    let wikifile = vimwiki#path#relpath(cwd, wikifile)
+    "let wikifile = fnamemodify(wikifile, ':r') " strip extension
+    if vimwiki#u#is_windows()
+      " TODO temporary fix see #478
+      let wikifile = substitute(wikifile , '/', '\', 'g')
+    endif
     let wikifile = vimwiki#path#relpath(cwd, wikifile)
     call add(result, wikifile)
   endfor
+
+"   return result
   if a:also_absolute_links
     for wikifile in files
       if a:wiki_nr == vimwiki#vars#get_bufferlocal('wiki_nr')
@@ -656,11 +666,50 @@ function! zettel#vimwiki#get_wikilinks(wiki_nr, also_absolute_links)
         let cwd = vimwiki#vars#get_wikilocal('path') . vimwiki#vars#get_wikilocal('diary_rel_path')
       endif
       let wikifile = '/'.vimwiki#path#relpath(cwd, wikifile)
+"      let wikifile = substitute(wikifile , '/', '\', 'g')
+      if vimwiki#u#is_windows()
+        " TODO temporary fix see #478
+        let wikifile = substitute(wikifile , '/', '\', 'g')
+      endif
+
+      let wikifile = '/'.vimwiki#path#relpath(cwd, wikifile)
       call add(result, wikifile)
     endfor
   endif
   return result
 endfunction
+
+
+
+" ------
+" based on vimwikis "get wiki links", not stripping file extension
+" function! zettel#vimwiki#get_wikilinks(wiki_nr, also_absolute_links)
+"   let files = vimwiki#base#find_files(a:wiki_nr, 0)
+"   if a:wiki_nr == vimwiki#vars#get_bufferlocal('wiki_nr')
+"     let cwd = vimwiki#path#wikify_path(expand('%:p:h'))
+"   elseif a:wiki_nr < 0
+"     let cwd = vimwiki#vars#get_wikilocal('path') . vimwiki#vars#get_wikilocal('diary_rel_path')
+"   else
+"     let cwd = vimwiki#vars#get_wikilocal('path', a:wiki_nr)
+"   endif
+"   let result = []
+"   for wikifile in files
+"     let wikifile = vimwiki#path#relpath(cwd, wikifile)
+"     call add(result, wikifile)
+"   endfor
+"   if a:also_absolute_links
+"     for wikifile in files
+"       if a:wiki_nr == vimwiki#vars#get_bufferlocal('wiki_nr')
+"         let cwd = vimwiki#vars#get_wikilocal('path')
+"       elseif a:wiki_nr < 0
+"         let cwd = vimwiki#vars#get_wikilocal('path') . vimwiki#vars#get_wikilocal('diary_rel_path')
+"       endif
+"       let wikifile = '/'.vimwiki#path#relpath(cwd, wikifile)
+"       call add(result, wikifile)
+"     endfor
+"   endif
+"   return result
+" endfunction
 
 " add link with title of the file referenced in the second argument to the
 " array in the first argument
@@ -681,10 +730,16 @@ endfunction
 
 
 " based on vimwikis "generate links", adding the %title to the link
-function! zettel#vimwiki#generate_links()
+function! zettel#vimwiki#generate_links() 
+  " Get pattern if present
+  " Globlal to script to be passed to closure
+  if a:0
+    let s:pattern = a:1
+  else
+    let s:pattern = ''
+  endif
   let lines = []
-
-  let links = zettel#vimwiki#get_wikilinks(vimwiki#vars#get_bufferlocal('wiki_nr'), 0)
+  let links = zettel#vimwiki#get_wikilinks(vimwiki#vars#get_bufferlocal('wiki_nr'), 0, s:pattern)
   call reverse(sort(links))
 
   let bullet = repeat(' ', vimwiki#lst#get_list_margin()) . vimwiki#lst#default_symbol().' '
